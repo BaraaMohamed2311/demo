@@ -6,6 +6,8 @@ on:
       - master
     paths:
       - server-app/**
+      
+  workflow_dispatch: # to run it manually
 
 env:
   IMAGE_TAG: ${{ github.sha }} # same tag used everywhere below, so nothing gets out of sync
