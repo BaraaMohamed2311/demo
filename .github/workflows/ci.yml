@@ -108,6 +108,7 @@ jobs:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     # needs: Vulnerability_Scanner
+    needs: Build_Docker_Image # CHANGE: temporarily skip the vulnerability scan for now
     timeout-minutes: 10 
     permissions:
       packages: write
