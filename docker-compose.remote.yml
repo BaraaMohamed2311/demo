@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # --- Node.js API Service ---
+  api:
+    image: baraamohamed/demo:${IMAGE_TAG:-latest}
+    pull_policy: always
+    container_name: minimal-node-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-mydb}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # --- PostgreSQL Database Service ---
+  db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-mydb}
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data # Persistent storage volume
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-mydb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

@@ -181,5 +181,5 @@ jobs:
         env:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          docker compose pull api
-          docker compose up -d
+          docker compose -f docker-compose.remote.yml pull api
+          docker compose -f docker-compose.remote.yml up -d
