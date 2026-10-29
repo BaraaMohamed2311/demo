@@ -11,7 +11,7 @@ dotenv.config(); // Load environment variables from .env file
 function getTransport() {
   // if (process.env.NODE_ENV === 'production') return undefined;
   // try {
-     require.resolve('pino-pretty');
+     // require.resolve('pino-pretty');
      return { target: 'pino-pretty' };
   // } catch {
   //  // return undefined; // not installed (production image): fall back to plain JSON logs
