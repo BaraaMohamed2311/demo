@@ -196,7 +196,14 @@ jobs:
         env:
           SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
         run: |
-          sed "s|__SMTP_APP_PASSWORD__|$SMTP_APP_PASSWORD|" monitoring/alertmanager/alertmanager.template.yml > monitoring/alertmanager/raw/alertmanager.yml
+          mkdir -p monitoring/alertmanager/raw
+          sed "s|__SMTP_APP_PASSWORD__|$SMTP_APP_PASSWORD|" monitoring/alertmanager/template/alertmanager.template.yml > monitoring/alertmanager/raw/alertmanager.yml
+ 
+      # Brings up monitoring alongside the app. No health check / rollback here —
+      # Prometheus and Alertmanager aren't versioned releases like the api image,
+      # they just need to reflect whatever's currently in the repo.
+      - name: Start/update monitoring stack
+        run: docker compose -f docker-compose.remote.yml up -d prometheus alertmanager
  
       - name: Deploy with automatic health check + rollback
         run: bash scripts/deploy.sh ${{ env.IMAGE_TAG }}
