@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 const pino = require('pino');
 const pinoHttp = require('pino-http');
 
-// Initialize structured JSON logging 
+// Initialize structured JSON logging  
 // log level like errors, warnings or just info (default)
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
