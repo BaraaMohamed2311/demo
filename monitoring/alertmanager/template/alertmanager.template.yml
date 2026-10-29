@@ -7,8 +7,9 @@ route:
 receivers:
   - name: 'mail'
     email_configs:
-      - smarthost: 'smtp.gmail.com:465'
+      - smarthost: 'smtp.gmail.com:587'
         auth_username: 'baraamohamed2311@gmail.com'
         auth_password: '__SMTP_APP_PASSWORD__'
         from: 'baraamohamed2311@gmail.com'
         to: 'baraamohamed2311@gmail.com'
+        require_tls: true
