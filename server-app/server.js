@@ -8,9 +8,19 @@ dotenv.config(); // Load environment variables from .env file
 
 // Initialize structured JSON logging  
 // log level like errors, warnings or just info (default)
+function getTransport() {
+  if (process.env.NODE_ENV === 'production') return undefined;
+  try {
+    require.resolve('pino-pretty');
+    return { target: 'pino-pretty' };
+  } catch {
+    return undefined; // not installed (production image): fall back to plain JSON logs
+  }
+}
+
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined
+  transport: getTransport()
 });
 
 const app = express();

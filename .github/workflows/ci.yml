@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build Docker image
-        run: docker build -t my-node-app:${{ env.IMAGE_TAG }} ./server-app
+        run: docker build --target production -t my-node-app:${{ env.IMAGE_TAG }} ./server-app
       # Jobs don't share a docker daemon, so save the image here and hand it to
       # the next job as a file. Without this, Vulnerability_Scanner would have
       # nothing to scan.

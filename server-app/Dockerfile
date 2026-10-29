@@ -1,27 +1,44 @@
-# --- install dependencies ---
-FROM node:20-alpine AS deps
+# --- shared base ---
+FROM node:20-alpine AS base
+
 WORKDIR /app
 
-# Only copy manifest files first so this layer is cached unless deps change
 COPY package*.json ./
-# install only fresh packages with versions in package.lock
+
+# --- production deps only ---
+FROM base AS deps-prod
+
 RUN npm ci --omit=dev
 
-# --- runtime image ---
-FROM node:20-alpine AS runtime
-WORKDIR /app
+# --- development: all deps (incl. pino-pretty), NODE_ENV=development ---
+FROM base AS development
 
-ENV NODE_ENV=production \
+ENV NODE_ENV=development \
     PORT=3000
 
-# Reuse installed node_modules from the deps stage
-COPY --from=deps /app/node_modules ./node_modules
+RUN npm ci
+
 COPY server.js ./
 
-# Run as a non-root user (node:20-alpine ships a built-in 'node' user)
 USER node
 
 EXPOSE 3000
 
+CMD ["node", "server.js"]
+
+
+# --- production: must stay LAST so it is the default target ---
+FROM base AS production
+
+ENV NODE_ENV=production \
+    PORT=3000
+
+COPY --from=deps-prod /app/node_modules ./node_modules
+
+COPY server.js ./
+
+USER node
+
+EXPOSE 3000
 
 CMD ["node", "server.js"]
