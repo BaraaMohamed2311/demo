@@ -188,5 +188,15 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4 # need docker-compose.yml, which lives in the repo
+ 
+      # Fills in the real password from the GitHub secret, right here on the
+      # host. GitHub auto-masks the secret in all logs, so it never prints.
+      # The template (no real secret) is committed; this output file is gitignored.
+      - name: Render alertmanager config
+        env:
+          SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+        run: |
+          sed "s|__SMTP_APP_PASSWORD__|$SMTP_APP_PASSWORD|" alertmanager/alertmanager.yml.template > alertmanager/alertmanager.yml
+ 
       - name: Deploy with automatic health check + rollback
-        run:  bash scripts/deploy.sh ${{ env.IMAGE_TAG }}
+        run: bash scripts/deploy.sh ${{ env.IMAGE_TAG }}

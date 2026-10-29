@@ -1,0 +1,2 @@
+compose-secrets/*
+*.secret.txt
