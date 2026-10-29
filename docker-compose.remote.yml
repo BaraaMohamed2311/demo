@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+
+  # --- Metrics Service ---
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - "./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml" # etc/prometheus/ same location defined in prometheus.yml for alerts
+    networks:
+      - localprom
+    ports:
+      - 9090:9090
+
   # --- Node.js API Service ---
   api:
     image: baraamohamed/demo:${IMAGE_TAG:-latest}
@@ -46,4 +58,6 @@ volumes:
 
 networks:
   app-network:
+    driver: bridge
+  localprom:
     driver: bridge

@@ -1,0 +1,10 @@
+# alerts.yml
+groups:
+  - name: api
+    rules:
+      - alert: ApiDown
+        expr: up{job="node-app"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "API /metrics failing for 1m. Runbook: roll back with scripts/deploy.sh <last-good-tag>"
