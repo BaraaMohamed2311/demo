@@ -18,8 +18,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - "./alertmanager:/config"
-      - alertmanager-data:/data
+      - "./monitoring/alertmanager/raw:/config"
     command: --config.file=/config/alertmanager.yml --log.level=debug
 
   # --- Node.js API Service ---
