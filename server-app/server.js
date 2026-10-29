@@ -9,7 +9,7 @@ dotenv.config(); // Load environment variables from .env file
 // Initialize structured JSON logging  
 // log level like errors, warnings or just info (default)
 function getTransport() {
-   //if (process.env.NODE_ENV === 'production') return undefined;
+   //if (process.env.NODE_ENV === 'production') return undefined; 
    //try {
     //require.resolve('pino-pretty');
      return { target: 'pino-pretty' };
