@@ -1,0 +1,173 @@
+name: GitHub Actions Demo
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - server-app/**
+
+env:
+  IMAGE_TAG: ${{ github.sha }} # same tag used everywhere below, so nothing gets out of sync
+
+jobs:
+
+  Node_Lint:
+    name: Node.js Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./server-app
+      - name: Run ESLint
+        run: npx eslint .
+        working-directory: ./server-app
+
+  Jest_Tests:
+    name: Jest Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./server-app
+      - name: Run Jest tests
+        run: npx jest --coverage
+        working-directory: ./server-app
+
+  Dockerfile_Linter:
+    name: Dockerfile Linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ./server-app/Dockerfile
+
+  # Waits for all three checks above. If any of them fails, this job is skipped
+  # uploads image artifact for other jobs to access instead of rebuilding it.
+  Build_Docker_Image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [Node_Lint, Jest_Tests, Dockerfile_Linter]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t my-node-app:${{ env.IMAGE_TAG }} ./server-app
+      # Jobs don't share a docker daemon, so save the image here and hand it to
+      # the next job as a file. Without this, Vulnerability_Scanner would have
+      # nothing to scan.
+      - name: Save image as artifact
+        run: docker save my-node-app:${{ env.IMAGE_TAG }} -o image.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar
+          retention-days: 1
+
+  # Waits for the build. If this job fails, push_to_registry below is skipped, a vulnerable image never gets pushed.
+  Vulnerability_Scanner:
+    name: Vulnerability Scanner
+    runs-on: ubuntu-latest
+    needs: Build_Docker_Image
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+      - name: Load image
+        run: docker load -i image.tar
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.28.0 # pinned version, not @master
+        with:
+          image-ref: my-node-app:${{ env.IMAGE_TAG }} # matches the tag actually built
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+  # Waits for the scan to pass. Only then does the image get pushed.
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    needs: Vulnerability_Scanner
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      # No checkout, no rebuild here. We download the exact file Build_Docker_Image
+      # produced and Vulnerability_Scanner already scanned, and push that.
+      - uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+      - name: Load image
+        run: docker load -i image.tar
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: my-docker-hub-namespace/my-docker-hub-repository
+          tags: |
+            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=latest
+
+      # Tags and pushes the loaded image under every tag metadata-action computed,
+      # then reads back the digest of the first tag we pushed. This is the same
+      # local image every tag points at, so the digest is the same for all of them.
+      - name: Tag and push loaded image
+        id: push
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          first=true
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag my-node-app:${{ env.IMAGE_TAG }} "$tag"
+            out=$(docker push "$tag")
+            echo "$out"
+            if [ "$first" = true ]; then
+              digest=$(echo "$out" | grep -oE 'sha256:[a-f0-9]+' | tail -1)
+              echo "digest=$digest" >> "$GITHUB_OUTPUT"
+              first=false
+            fi
+          done <<< "$TAGS"
+
+      - name: Generate artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-name: index.docker.io/my-docker-hub-namespace/my-docker-hub-repository
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+  # New: actually deploys to your own host. Runs only on your machine (where the
+  # self-hosted runner is installed), only after the image is pushed.
+  Deploy:
+    name: Deploy to host
+    runs-on: self-hosted
+    needs: push_to_registry
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4 # need docker-compose.yml, which lives in the repo
+      - name: Pull new image and restart
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          docker compose pull api
+          docker compose up -d
