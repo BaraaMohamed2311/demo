@@ -2,6 +2,9 @@ const express = require('express');
 const { Pool } = require('pg');
 const pino = require('pino');
 const pinoHttp = require('pino-http');
+const dotenv = require('dotenv');
+dotenv.config(); // Load environment variables from .env file
+
 
 // Initialize structured JSON logging  
 // log level like errors, warnings or just info (default)
@@ -46,7 +49,7 @@ async function initializeDb() {
   }
 }
 
-initializeDb();
+
 
 // --- Routes ---
 
@@ -122,9 +125,7 @@ app.get('/metrics', async (req, res) => {
 
 // --- Server Lifecycle & Graceful Shutdown ---
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-});
+let server; // CHANGE: declared with let so it can be assigned inside the startup block below
 
 // Graceful shutdown handling for container termination signals (SIGTERM/SIGINT)
 const gracefulShutdown = (signal) => {
@@ -151,7 +152,17 @@ const gracefulShutdown = (signal) => {
   }, 10000);
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// when this file is run directly (not imported), start the server and initialize the DB
+// when it is imported (e.g., for testing), do not start the server or initialize the DB
+if (require.main === module) {
+  initializeDb();
+
+  server = app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+  });
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
 
 module.exports = { app, pool }; // export what tests need

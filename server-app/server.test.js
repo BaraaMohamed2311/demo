@@ -1,5 +1,9 @@
 const request = require('supertest');
-const { app } = require('../server-app/server');
+const { app, pool } = require('./server'); 
+// close the pool after all tests as good hygiene
+afterAll(async () => {
+  await pool.end();
+});
 
 describe('API Health Checks', () => {
   test('GET /healthz should return 200 OK and status UP', async () => {

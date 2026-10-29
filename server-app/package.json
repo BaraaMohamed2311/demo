@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Minimal Node.js Express API satisfying cloud & container requirements",
   "main": "server.js",
-  "type": "module",
+
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development node server.js",
@@ -11,6 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "dotenv": "^18.0.9",
     "express": "^4.19.2",
     "pg": "^8.11.3",
     "pino": "^8.19.0",
