@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
 
@@ -9,9 +8,20 @@ services:
       - "./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
       - "./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml" # etc/prometheus/ same location defined in prometheus.yml for alerts
     networks:
-      - localprom
+      - monitoring
     ports:
       - 9090:9090
+
+  alertmanager:
+    image: prom/alertmanager:v0.23.0
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - "./monitoring/alertmanager/raw:/config"
+    command: --config.file=/config/alertmanager.yml --log.level=debug
+    networks:
+      - monitoring
 
   # --- Node.js API Service ---
   api:
@@ -56,8 +66,10 @@ volumes:
   pgdata:
     driver: local
 
+  alertmanager-data:
+
 networks:
   app-network:
     driver: bridge
-  localprom:
+  monitoring:
     driver: bridge
