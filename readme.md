@@ -90,7 +90,7 @@ The choice of approach, steps, and tools is mine. Any code created by AI was rev
 ### Broken Workflow (Trivy)
 
 **Workflow Failure:**
-![Trivy Failure](proof/failure_forced_trivy.gif)
+![Trivy Failure](proof/failure_forced_trivy.PNG)
 
 
 ### References
