@@ -47,7 +47,7 @@ The choice of approach, steps, and tools is mine. Any code created by AI was rev
 ### Working (Without Forced Vulnerability Scan Fail)
 
 **Workflow GIF:**
-![Successful Build](successful_build_without_trivy.gif)
+![Successful Build](successful_build_without_trivy.PNG)
 
 **Running Compose:**
 ![Running Compose](proof/running_compose_docker_desktop.PNG)
